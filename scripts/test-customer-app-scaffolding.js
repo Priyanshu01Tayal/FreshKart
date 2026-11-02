@@ -40,7 +40,9 @@ assert(pkg.dependencies['expo-router'] !== undefined, 'expo-router configured');
 const appJson = JSON.parse(fs.readFileSync(path.join(APP_DIR, 'app.json'), 'utf8')).expo;
 assert(appJson.name === 'FreshKart', 'app.json configures Android App Name as "FreshKart"');
 assert(appJson.android.package === 'com.freshkart.customer', 'app.json configures unique package identifier "com.freshkart.customer"');
-assert(appJson.splash.backgroundColor === '#168447', 'Splash background color configured as primary green (#168447)');
+const splashBg = appJson.splash?.backgroundColor || 
+  (Array.isArray(appJson.plugins) && appJson.plugins.find(p => Array.isArray(p) && p[0] === 'expo-splash-screen')?.[1]?.backgroundColor);
+assert(splashBg === '#168447', 'Splash background color configured as primary green (#168447)');
 assert(appJson.android.adaptiveIcon.backgroundColor === '#168447', 'Adaptive icon background color configured as #168447');
 
 // 3. Verify Brand Asset Files

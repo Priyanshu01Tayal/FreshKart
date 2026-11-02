@@ -21,5 +21,8 @@
     "postgresql"
   ],
   "author": "FreshKart Engineering",
-  "license": "UNLICENSED"
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "expo-doctor": "^1.21.5"
+  }
 }

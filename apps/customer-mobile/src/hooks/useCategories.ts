@@ -49,3 +49,4 @@ export function useCategories() {
     refetch: fetchCategories,
   };
 }
+

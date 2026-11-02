@@ -53,3 +53,4 @@ export function useStoreSettings() {
     refetch: fetchSettings,
   };
 }
+

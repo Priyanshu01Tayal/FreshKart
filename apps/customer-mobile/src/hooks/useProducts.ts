@@ -97,3 +97,4 @@ export function useProducts(options: UseProductsOptions = {}) {
     debouncedSearchQuery,
   };
 }
+
