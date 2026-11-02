@@ -1,0 +1,25 @@
+{
+  "name": "freshkart-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Production-oriented quick commerce grocery delivery platform",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "test:db": "node scripts/test-db-logic.js",
+    "typecheck": "npm run --workspaces --if-present typecheck"
+  },
+  "keywords": [
+    "quick-commerce",
+    "grocery-delivery",
+    "react-native",
+    "expo",
+    "react",
+    "supabase",
+    "postgresql"
+  ],
+  "author": "FreshKart Engineering",
+  "license": "UNLICENSED"
+}
