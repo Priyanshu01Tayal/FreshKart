@@ -223,3 +223,4 @@ export const DeliveryPartners: React.FC<DeliveryPartnersProps> = ({
     </div>
   );
 };
+

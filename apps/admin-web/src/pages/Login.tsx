@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { ShoppingBag, Lock, Mail, AlertCircle, ArrowRight } from 'lucide-react';
+import { ShoppingBag, Lock, Mail, AlertCircle, ArrowRight, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const Login: React.FC = () => {
-  const { signIn, isDevMode, enableDevAdmin } = useAuth();
+  const { signIn, isSupabaseConnected } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +25,7 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#F5FAF5] p-4">
+    <div className="flex min-h-screen items-center justify-center bg-[#F5FAF5] p-4 font-sans">
       <div className="w-full max-w-md rounded-3xl border border-[#D5EEDB] bg-white p-8 shadow-sm">
         {/* Brand Header */}
         <div className="text-center">
@@ -40,6 +40,21 @@ export const Login: React.FC = () => {
           </p>
         </div>
 
+        {/* Environment Connection Status Warning */}
+        {!isSupabaseConnected && (
+          <div className="mt-6 flex items-start space-x-2.5 rounded-2xl bg-amber-50 p-4 text-xs text-amber-800 border border-amber-200">
+            <ShieldAlert className="h-5 w-5 shrink-0 text-amber-600 mt-0.5" />
+            <div>
+              <p className="font-bold">Supabase Backend Unconnected</p>
+              <p className="mt-0.5 text-amber-700">
+                Please set <code className="bg-amber-100 px-1 py-0.5 rounded font-mono">VITE_SUPABASE_URL</code> and{' '}
+                <code className="bg-amber-100 px-1 py-0.5 rounded font-mono">VITE_SUPABASE_ANON_KEY</code> in{' '}
+                <code className="bg-amber-100 px-1 py-0.5 rounded font-mono">.env</code> to connect to your live database.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Error Alert */}
         {error && (
           <div className="mt-6 flex items-start space-x-2 rounded-xl bg-red-50 p-3 text-sm text-red-700 border border-red-200">
@@ -52,7 +67,7 @@ export const Login: React.FC = () => {
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div>
             <label className="block text-xs font-semibold text-[#17251C] uppercase tracking-wider mb-1.5">
-              Admin Email
+              Administrator Email
             </label>
             <div className="relative">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
@@ -62,7 +77,7 @@ export const Login: React.FC = () => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@freshkart.local"
+                placeholder="admin@freshkart.com"
                 required
                 className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-[#17251C] outline-none transition focus:border-[#168447] focus:ring-2 focus:ring-[#EAF7EE]"
               />
@@ -90,34 +105,16 @@ export const Login: React.FC = () => {
 
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || !isSupabaseConnected}
             className="flex w-full items-center justify-center space-x-2 rounded-xl bg-[#168447] py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#105C35] active:scale-[0.99] disabled:opacity-50"
           >
-            <span>{isSubmitting ? 'Authenticating...' : 'Sign In to Hub'}</span>
+            <span>{isSubmitting ? 'Verifying with Supabase Auth...' : 'Sign In to Hub'}</span>
             {!isSubmitting && <ArrowRight className="h-4 w-4" />}
           </button>
         </form>
 
-        {/* Local Sandbox Quick-Access Helper */}
-        {isDevMode && (
-          <div className="mt-6 rounded-2xl border border-dashed border-[#168447]/30 bg-[#EAF7EE]/50 p-4 text-center">
-            <p className="text-xs font-semibold text-[#105C35]">
-              Local Development Mode
-            </p>
-            <p className="mt-1 text-xs text-gray-600">
-              Supabase connection is using local offline defaults.
-            </p>
-            <button
-              onClick={() => enableDevAdmin()}
-              className="mt-3 inline-flex items-center space-x-1.5 rounded-lg bg-[#168447] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#105C35]"
-            >
-              <span>Instant Local Admin Login</span>
-            </button>
-          </div>
-        )}
-
-        <div className="mt-6 text-center text-xs text-gray-400">
-          Protected by Supabase Role-Level Security (RLS). Only authenticated administrators can access.
+        <div className="mt-8 text-center text-xs text-gray-400">
+          Protected strictly by Supabase Auth and PostgreSQL Row-Level Security (RLS). Customer and Delivery Partner accounts cannot access this portal.
         </div>
       </div>
     </div>

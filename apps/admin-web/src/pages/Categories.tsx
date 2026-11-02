@@ -296,3 +296,4 @@ export const Categories: React.FC<CategoriesProps> = ({
     </div>
   );
 };
+

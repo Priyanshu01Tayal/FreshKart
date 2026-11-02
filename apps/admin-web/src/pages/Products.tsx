@@ -568,3 +568,4 @@ export const Products: React.FC<ProductsProps> = ({
     </div>
   );
 };
+

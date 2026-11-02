@@ -245,3 +245,4 @@ export const Inventory: React.FC<InventoryProps> = ({
     </div>
   );
 };
+

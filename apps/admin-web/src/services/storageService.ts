@@ -30,9 +30,10 @@ export const uploadProductImage = async (file: File): Promise<ImageUploadResult>
   }
 
   if (!isSupabaseConfigured) {
-    // Return a local Object URL for immediate preview in offline dev mode
-    const localUrl = URL.createObjectURL(file);
-    return { url: localUrl, error: null };
+    return {
+      url: null,
+      error: 'Supabase storage is not configured. Please supply VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.',
+    };
   }
 
   try {

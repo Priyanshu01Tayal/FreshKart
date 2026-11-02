@@ -5,8 +5,7 @@ import {
   VolumeX,
   LogOut,
   User,
-  ShoppingBag,
-  AlertCircle
+  ShoppingBag
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { orderChime } from '../../utils/audio';
@@ -22,7 +21,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onToggleStoreOpen,
   isStoreLoading,
 }) => {
-  const { profile, signOut, isDevMode } = useAuth();
+  const { profile, signOut } = useAuth();
   const [isMuted, setIsMuted] = useState<boolean>(orderChime.getMuted());
 
   const handleToggleMute = () => {
@@ -46,12 +45,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="rounded-full bg-[#EAF7EE] px-2 py-0.5 text-xs font-semibold text-[#168447]">
               Operations Hub
             </span>
-            {isDevMode && (
-              <span className="hidden items-center space-x-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 sm:inline-flex">
-                <AlertCircle className="h-3 w-3" />
-                <span>Local Sandbox</span>
-              </span>
-            )}
           </div>
           <p className="hidden text-xs text-gray-500 sm:block">Koramangala Dark Store #1</p>
         </div>
@@ -115,3 +108,4 @@ export const Navbar: React.FC<NavbarProps> = ({
     </header>
   );
 };
+

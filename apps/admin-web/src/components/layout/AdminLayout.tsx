@@ -44,3 +44,4 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
     </div>
   );
 };
+

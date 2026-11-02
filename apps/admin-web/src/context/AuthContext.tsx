@@ -12,8 +12,7 @@ interface AuthContextType {
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
-  isDevMode: boolean;
-  enableDevAdmin: () => void;
+  isSupabaseConnected: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,21 +22,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isDevMode, setIsDevMode] = useState<boolean>(!isSupabaseConfigured);
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
-      // If no live Supabase config, check if dev admin session is active
-      const devActive = localStorage.getItem('freshkart_dev_admin_active') === 'true';
-      if (devActive) {
-        setDevAdminSession();
-      } else {
-        setIsLoading(false);
-      }
+      console.warn('[FreshKart Admin] Supabase credentials are not configured in environment.');
+      setIsLoading(false);
       return;
     }
 
-    // Check active session
+    // Check active Supabase session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         handleUserSession(session.user);
@@ -46,6 +39,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
+    // Realtime Supabase auth listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
         await handleUserSession(session.user);
@@ -72,15 +66,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       if (error || !data) {
-        console.error('Failed to load profile:', error);
+        console.error('Failed to load user profile:', error);
         setIsAdmin(false);
         setProfile(null);
       } else {
         const profileRecord = data as unknown as Profile;
         setProfile(profileRecord);
+
+        // Strict role validation: Only 'admin' role allowed
         if (profileRecord.role === 'admin' && profileRecord.is_active) {
           setIsAdmin(true);
         } else {
+          console.warn(`[Access Denied] User ${authUser.id} has role '${profileRecord.role}', admin required.`);
           setIsAdmin(false);
           await supabase.auth.signOut();
         }
@@ -92,50 +89,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const setDevAdminSession = () => {
-    const mockAdminUser = {
-      id: '00000000-0000-0000-0000-000000000001',
-      app_metadata: {},
-      user_metadata: {},
-      aud: 'authenticated',
-      created_at: new Date().toISOString(),
-      email: 'admin@freshkart.local',
-      phone: '+919876543210',
-    } as User;
-
-    const mockAdminProfile: Profile = {
-      id: '00000000-0000-0000-0000-000000000001',
-      phone_number: '+919876543210',
-      full_name: 'Store Administrator',
-      role: 'admin',
-      is_active: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-
-    setUser(mockAdminUser);
-    setProfile(mockAdminProfile);
-    setIsAdmin(true);
-    setIsDevMode(true);
-    localStorage.setItem('freshkart_dev_admin_active', 'true');
-    setIsLoading(false);
-  };
-
-  const enableDevAdmin = () => {
-    setDevAdminSession();
-  };
-
   const signIn = async (email: string, password: string): Promise<{ error: string | null }> => {
     setIsLoading(true);
     try {
       if (!isSupabaseConfigured) {
-        if (email.toLowerCase().includes('admin') || password === 'admin123') {
-          setDevAdminSession();
-          return { error: null };
-        }
-        return { error: 'Invalid admin credentials. (Hint: use admin@freshkart.local / admin123)' };
+        return {
+          error: 'Supabase is not configured. Please provide VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env.',
+        };
       }
 
+      // Real Supabase Authentication
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -149,7 +112,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { error: 'Failed to authenticate user.' };
       }
 
-      // Check profile role
+      // Query database profile to verify administrator privileges
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -157,9 +120,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       const typedProfile = profileData as unknown as Profile | null;
-      if (profileError || !typedProfile || typedProfile.role !== 'admin') {
+
+      if (profileError || !typedProfile) {
         await supabase.auth.signOut();
-        return { error: 'Access Denied: Your account does not have administrator privileges.' };
+        return { error: 'Profile not found. Please contact platform support.' };
+      }
+
+      // Enforce zero-trust role boundary: Block customers & delivery partners
+      if (typedProfile.role !== 'admin') {
+        await supabase.auth.signOut();
+        return {
+          error: `Access Denied: Account role '${typedProfile.role}' is not authorized to access the Admin Hub.`,
+        };
+      }
+
+      if (!typedProfile.is_active) {
+        await supabase.auth.signOut();
+        return { error: 'Access Denied: Your administrator account has been deactivated.' };
       }
 
       setUser(data.user);
@@ -167,7 +144,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsAdmin(true);
       return { error: null };
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'An unexpected error occurred';
+      const msg = err instanceof Error ? err.message : 'An unexpected error occurred during authentication';
       return { error: msg };
     } finally {
       setIsLoading(false);
@@ -176,14 +153,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     setIsLoading(true);
-    localStorage.removeItem('freshkart_dev_admin_active');
-    if (isSupabaseConfigured) {
-      await supabase.auth.signOut();
+    try {
+      if (isSupabaseConfigured) {
+        await supabase.auth.signOut();
+      }
+    } catch (err) {
+      console.error('Sign out error:', err);
+    } finally {
+      setUser(null);
+      setProfile(null);
+      setIsAdmin(false);
+      setIsLoading(false);
     }
-    setUser(null);
-    setProfile(null);
-    setIsAdmin(false);
-    setIsLoading(false);
   };
 
   return (
@@ -195,8 +176,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         signIn,
         signOut,
-        isDevMode,
-        enableDevAdmin,
+        isSupabaseConnected: isSupabaseConfigured,
       }}
     >
       {children}

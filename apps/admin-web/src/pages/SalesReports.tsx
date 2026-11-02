@@ -273,3 +273,4 @@ export const SalesReports: React.FC<SalesReportsProps> = ({
     </div>
   );
 };
+

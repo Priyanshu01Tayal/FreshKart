@@ -24,152 +24,31 @@ type Profile = Database['public']['Tables']['profiles']['Row'];
 type OrderItem = Database['public']['Tables']['order_items']['Row'];
 type CashSettlement = Database['public']['Tables']['cash_settlements']['Row'];
 
-// Initial Fallback Seed for offline testing
-const INITIAL_STORE_SETTINGS: StoreSettings = {
-  id: '00000000-0000-0000-0000-000000000001',
-  singleton_guard: true,
-  store_name: 'FreshKart Central Hub - Koramangala',
-  store_address: '124, 80 Feet Road, 4th Block, Koramangala, Bengaluru, Karnataka 560034',
-  latitude: 12.9345330,
-  longitude: 77.6265790,
-  delivery_radius_km: 5.0,
-  is_store_open: true,
-  is_delivery_available: true,
-  min_order_value: 99.0,
-  standard_delivery_fee: 25.0,
-  free_delivery_threshold: 299.0,
-  contact_phone: '+919876543210',
-  updated_at: new Date().toISOString(),
-  updated_by: null,
-};
-
-const INITIAL_CATEGORIES: Category[] = [
-  { id: 'cat-1', name: 'Fresh Vegetables', slug: 'fresh-vegetables', image_url: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=300', sort_order: 1, is_active: true, created_at: '', updated_at: '' },
-  { id: 'cat-2', name: 'Fresh Fruits', slug: 'fresh-fruits', image_url: 'https://images.unsplash.com/photo-1619566636858-adf3ef46400b?w=300', sort_order: 2, is_active: true, created_at: '', updated_at: '' },
-  { id: 'cat-3', name: 'Dairy & Breakfast', slug: 'dairy-breakfast', image_url: 'https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=300', sort_order: 3, is_active: true, created_at: '', updated_at: '' },
-  { id: 'cat-4', name: 'Bakery & Bread', slug: 'bakery-bread', image_url: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=300', sort_order: 4, is_active: true, created_at: '', updated_at: '' },
-  { id: 'cat-5', name: 'Snacks & Munchies', slug: 'snacks-munchies', image_url: 'https://images.unsplash.com/photo-1566478989037-eec170784d0b?w=300', sort_order: 5, is_active: true, created_at: '', updated_at: '' },
-  { id: 'cat-6', name: 'Cold Drinks & Juices', slug: 'cold-drinks-juices', image_url: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=300', sort_order: 6, is_active: true, created_at: '', updated_at: '' },
-];
-
-const INITIAL_PRODUCTS: Product[] = [
-  { id: 'p-1', category_id: 'cat-1', name: 'Fresh Hybrid Tomatoes', description: 'Farm fresh red tomatoes', unit: '500g', price: 24.0, discount_price: 19.0, image_url: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=400', stock_quantity: 45, low_stock_threshold: 10, is_active: true, created_at: '', updated_at: '' },
-  { id: 'p-2', category_id: 'cat-1', name: 'Fresh Pink Onions', description: 'Crisp, pungent onions', unit: '1 kg', price: 38.0, discount_price: 32.0, image_url: 'https://images.unsplash.com/photo-1618512496248-a07fe83aa8cb?w=400', stock_quantity: 4, low_stock_threshold: 10, is_active: true, created_at: '', updated_at: '' },
-  { id: 'p-3', category_id: 'cat-3', name: 'Amul Taaza Milk', description: 'Pasteurised fresh toned milk', unit: '1 L', price: 54.0, discount_price: 52.0, image_url: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400', stock_quantity: 0, low_stock_threshold: 8, is_active: true, created_at: '', updated_at: '' },
-  { id: 'p-4', category_id: 'cat-4', name: 'English Oven Wheat Bread', description: '100% whole wheat sliced bread', unit: '400g', price: 50.0, discount_price: 45.0, image_url: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400', stock_quantity: 12, low_stock_threshold: 5, is_active: true, created_at: '', updated_at: '' },
-  { id: 'p-5', category_id: 'cat-5', name: 'Lay\'s India\'s Magic Masala', description: 'Spicy potato chips', unit: '50g', price: 20.0, discount_price: null, image_url: 'https://images.unsplash.com/photo-1566478989037-eec170784d0b?w=400', stock_quantity: 35, low_stock_threshold: 10, is_active: true, created_at: '', updated_at: '' },
-];
-
-const INITIAL_RIDERS: Profile[] = [
-  { id: 'rider-1', full_name: 'Rahul Kumar', phone_number: '+919876500001', role: 'delivery_partner', is_active: true, created_at: '', updated_at: '' },
-  { id: 'rider-2', full_name: 'Suresh Patel', phone_number: '+919876500002', role: 'delivery_partner', is_active: true, created_at: '', updated_at: '' },
-];
-
-const INITIAL_ORDERS: Order[] = [
-  {
-    id: 'ord-101',
-    order_number: 'FK-20261102-1084',
-    customer_id: 'cust-1',
-    delivery_partner_id: null,
-    status: 'PLACED',
-    payment_method: 'COD',
-    cod_status: 'PENDING_COLLECTION',
-    subtotal: 156.0,
-    delivery_fee: 25.0,
-    total_amount: 181.0,
-    cod_collected_amount: null,
-    cod_collected_at: null,
-    cash_settlement_id: null,
-    delivery_address: {
-      recipient_name: 'Ananya Roy',
-      phone: '+919811223344',
-      address_line1: 'Flat 402, Green Glen Layout, Bellandur',
-      landmark: 'Near Central Mall',
-      distance_km: 2.4,
-    },
-    customer_notes: 'Please do not ring bell, leave at door.',
-    cancellation_reason: null,
-    cancelled_by: null,
-    placed_at: new Date().toISOString(),
-    confirmed_at: null,
-    packed_at: null,
-    dispatched_at: null,
-    delivered_at: null,
-    cancelled_at: null,
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'ord-102',
-    order_number: 'FK-20261102-1082',
-    customer_id: 'cust-2',
-    delivery_partner_id: 'rider-1',
-    status: 'DELIVERED',
-    payment_method: 'COD',
-    cod_status: 'HELD_BY_PARTNER',
-    subtotal: 310.0,
-    delivery_fee: 0.0,
-    total_amount: 310.0,
-    cod_collected_amount: 310.0,
-    cod_collected_at: new Date(Date.now() - 3600000).toISOString(),
-    cash_settlement_id: null,
-    delivery_address: {
-      recipient_name: 'Karthik Rao',
-      phone: '+919844556677',
-      address_line1: '14, 5th Cross, 6th Block, Koramangala',
-      landmark: 'Opposite Police Station',
-      distance_km: 1.1,
-    },
-    customer_notes: null,
-    cancellation_reason: null,
-    cancelled_by: null,
-    placed_at: new Date(Date.now() - 5400000).toISOString(),
-    confirmed_at: new Date(Date.now() - 4800000).toISOString(),
-    packed_at: new Date(Date.now() - 4200000).toISOString(),
-    dispatched_at: new Date(Date.now() - 3900000).toISOString(),
-    delivered_at: new Date(Date.now() - 3600000).toISOString(),
-    cancelled_at: null,
-    updated_at: new Date().toISOString(),
-  },
-];
-
-const INITIAL_ORDER_ITEMS: Record<string, OrderItem[]> = {
-  'ord-101': [
-    { id: 'it-1', order_id: 'ord-101', product_id: 'p-1', product_name: 'Fresh Hybrid Tomatoes', unit: '500g', unit_price: 19.0, quantity: 2, total_price: 38.0 },
-    { id: 'it-2', order_id: 'ord-101', product_id: 'p-2', product_name: 'Fresh Pink Onions', unit: '1 kg', unit_price: 32.0, quantity: 2, total_price: 64.0 },
-    { id: 'it-3', order_id: 'ord-101', product_id: 'p-4', product_name: 'English Oven Wheat Bread', unit: '400g', unit_price: 45.0, quantity: 1, total_price: 45.0 },
-  ],
-  'ord-102': [
-    { id: 'it-4', order_id: 'ord-102', product_id: 'p-1', product_name: 'Fresh Hybrid Tomatoes', unit: '500g', unit_price: 19.0, quantity: 4, total_price: 76.0 },
-    { id: 'it-5', order_id: 'ord-102', product_id: 'p-4', product_name: 'English Oven Wheat Bread', unit: '400g', unit_price: 45.0, quantity: 2, total_price: 90.0 },
-  ],
-};
-
 const DashboardContent: React.FC = () => {
   const { isAdmin, isLoading: isAuthLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<NavTab>('orders');
 
-  // Application Data States
-  const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
-  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
-  const [categories, setCategories] = useState<Category[]>(INITIAL_CATEGORIES);
-  const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(INITIAL_STORE_SETTINGS);
-  const [deliveryPartners, setDeliveryPartners] = useState<Profile[]>(INITIAL_RIDERS);
-  const [orderItems, setOrderItems] = useState<Record<string, OrderItem[]>>(INITIAL_ORDER_ITEMS);
+  // Genuine Database States (no mock data fallback in production)
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
+  const [deliveryPartners, setDeliveryPartners] = useState<Profile[]>([]);
+  const [orderItems, setOrderItems] = useState<Record<string, OrderItem[]>>({});
   const [settlements, setSettlements] = useState<CashSettlement[]>([]);
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isStoreLoading, setIsStoreLoading] = useState<boolean>(false);
 
-  // Fetch Database Data or Fallback
+  // Fetch Database Data from real Supabase instance
   const fetchData = useCallback(async () => {
+    if (!isSupabaseConfigured) {
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     try {
-      if (!isSupabaseConfigured) {
-        setIsLoading(false);
-        return;
-      }
-
-      // Fetch in parallel
       const [
         ordersRes,
         productsRes,
@@ -204,18 +83,20 @@ const DashboardContent: React.FC = () => {
         setOrderItems(itemMap);
       }
     } catch (err) {
-      console.error('Error fetching dashboard data:', err);
+      console.error('Error fetching dashboard data from Supabase:', err);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    if (!isAdmin) return;
+
     fetchData();
 
     if (!isSupabaseConfigured) return;
 
-    // Realtime channel for live orders
+    // Realtime channel for live incoming orders
     const ordersChannel = supabase
       .channel('admin_realtime_orders')
       .on(
@@ -260,7 +141,7 @@ const DashboardContent: React.FC = () => {
       supabase.removeChannel(ordersChannel);
       supabase.removeChannel(productChannel);
     };
-  }, [fetchData]);
+  }, [isAdmin, fetchData]);
 
   // Master Store Status Toggle
   const handleToggleStoreOpen = async () => {
@@ -276,7 +157,7 @@ const DashboardContent: React.FC = () => {
       }
       setStoreSettings((prev) => (prev ? { ...prev, is_store_open: newStatus } : prev));
     } catch (err) {
-      console.error('Failed to toggle store status:', err);
+      console.error('Failed to toggle store status in database:', err);
     } finally {
       setIsStoreLoading(false);
     }
@@ -304,24 +185,7 @@ const DashboardContent: React.FC = () => {
     }
 
     setOrders((prev) =>
-      prev.map((o) => {
-        if (o.id === orderId) {
-          const updated = { ...o, ...updates };
-          // If cancelled in local state, simulate restock
-          if (newStatus === 'CANCELLED' && o.status !== 'CANCELLED') {
-            const items = orderItems[orderId] || [];
-            items.forEach((it) => {
-              setProducts((currProds) =>
-                currProds.map((p) =>
-                  p.id === it.product_id ? { ...p, stock_quantity: p.stock_quantity + it.quantity } : p
-                )
-              );
-            });
-          }
-          return updated;
-        }
-        return o;
-      })
+      prev.map((o) => (o.id === orderId ? { ...o, ...updates } : o))
     );
   };
 
@@ -331,14 +195,6 @@ const DashboardContent: React.FC = () => {
       const { data, error } = await (supabase.from('products') as any).insert([productData]).select().single();
       if (error) throw error;
       if (data) setProducts((prev) => [data as unknown as Product, ...prev]);
-    } else {
-      const mockProduct: Product = {
-        ...productData,
-        id: 'p-' + Math.random().toString(36).substring(2, 8),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      setProducts((prev) => [mockProduct, ...prev]);
     }
   };
 
@@ -364,14 +220,6 @@ const DashboardContent: React.FC = () => {
       const { data, error } = await (supabase.from('categories') as any).insert([catData]).select().single();
       if (error) throw error;
       if (data) setCategories((prev) => [...prev, data as unknown as Category]);
-    } else {
-      const mockCategory: Category = {
-        ...catData,
-        id: 'cat-' + Math.random().toString(36).substring(2, 8),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      setCategories((prev) => [...prev, mockCategory]);
     }
   };
 
@@ -418,21 +266,14 @@ const DashboardContent: React.FC = () => {
   };
 
   const handleAddPartner = async (fullName: string, phone: string) => {
-    const mockId = 'rider-' + Math.random().toString(36).substring(2, 7);
-    const newPartner: Profile = {
-      id: mockId,
-      full_name: fullName,
-      phone_number: phone,
-      role: 'delivery_partner',
-      is_active: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
     if (isSupabaseConfigured) {
-      const { error } = await (supabase.from('profiles') as any).insert([newPartner]);
+      const { data, error } = await (supabase.from('profiles') as any)
+        .insert([{ full_name: fullName, phone_number: phone, role: 'delivery_partner', is_active: true }])
+        .select()
+        .single();
       if (error) throw error;
+      if (data) setDeliveryPartners((prev) => [...prev, data as unknown as Profile]);
     }
-    setDeliveryPartners((prev) => [...prev, newPartner]);
   };
 
   // Cash Reconciliation Handler
@@ -445,36 +286,6 @@ const DashboardContent: React.FC = () => {
       });
       if (error) throw error;
       await fetchData();
-    } else {
-      // Local settlement simulation
-      const deliveredPending = orders.filter(
-        (o) =>
-          o.delivery_partner_id === partnerId &&
-          o.status === 'DELIVERED' &&
-          o.cod_status === 'HELD_BY_PARTNER'
-      );
-      const expected = deliveredPending.reduce((sum, o) => sum + Number(o.total_amount), 0);
-      const settlementId = 'settle-' + Math.random().toString(36).substring(2, 8);
-      const newSettlement: CashSettlement = {
-        id: settlementId,
-        settlement_reference: 'SETTLE-20261102-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
-        delivery_partner_id: partnerId,
-        admin_id: 'admin-id',
-        total_orders_settled: deliveredPending.length,
-        expected_cash_amount: expected,
-        actual_cash_received: actualCash,
-        discrepancy_amount: actualCash - expected,
-        discrepancy_notes: notes || null,
-        settled_at: new Date().toISOString(),
-      };
-      setSettlements((prev) => [newSettlement, ...prev]);
-      setOrders((prev) =>
-        prev.map((o) =>
-          o.delivery_partner_id === partnerId && o.status === 'DELIVERED' && o.cod_status === 'HELD_BY_PARTNER'
-            ? { ...o, cod_status: 'SETTLED_WITH_ADMIN', cash_settlement_id: settlementId }
-            : o
-        )
-      );
     }
   };
 

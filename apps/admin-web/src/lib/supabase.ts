@@ -26,3 +26,4 @@ export const supabase = createClient<Database>(safeUrl, safeKey, {
     },
   },
 });
+

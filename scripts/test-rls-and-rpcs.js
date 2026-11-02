@@ -663,3 +663,4 @@ console.log(` RLS & Stored Procedure Tests Complete: ${passCount} Passed, ${fail
 console.log(`================================================================\n`);
 
 if (failCount > 0) process.exit(1);
+
