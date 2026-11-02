@@ -4,9 +4,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ShieldCheck, MapPin, ArrowRight } from 'lucide-react-native';
 import { colors } from '../src/theme/colors';
 import { useCartStore } from '../src/store/useCartStore';
+import { useStoreSettings } from '../src/hooks/useStoreSettings';
 
 export default function CheckoutScreen() {
   const subtotal = useCartStore((state) => state.getSubtotal());
+  const { settings } = useStoreSettings();
+
+  const standardDeliveryFee = settings?.standard_delivery_fee ?? 25;
+  const freeDeliveryThreshold = settings?.free_delivery_threshold ?? 299;
+  const deliveryFee = subtotal >= freeDeliveryThreshold ? 0 : standardDeliveryFee;
+  const total = subtotal + deliveryFee;
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -17,9 +24,11 @@ export default function CheckoutScreen() {
             <MapPin color={colors.primary} size={18} />
             <Text style={styles.cardTitle}>Delivery Destination</Text>
           </View>
-          <Text style={styles.addressName}>Home (Koramangala Hub Zone)</Text>
+          <Text style={styles.addressName}>
+            {settings?.store_address ? `Serving from ${settings.store_name}` : 'Delivery Destination'}
+          </Text>
           <Text style={styles.addressLine}>
-            124, 80 Feet Road, 4th Block, Koramangala, Bengaluru
+            {settings?.store_address ? settings.store_address : 'Address selection will be activated in Step 3'}
           </Text>
         </View>
 
@@ -46,11 +55,13 @@ export default function CheckoutScreen() {
           </View>
           <View style={styles.billRow}>
             <Text style={styles.billLabel}>Standard Delivery Fee</Text>
-            <Text style={styles.billVal}>₹25.00</Text>
+            <Text style={styles.billVal}>
+              {deliveryFee === 0 ? 'FREE' : `₹${deliveryFee.toFixed(2)}`}
+            </Text>
           </View>
           <View style={[styles.billRow, styles.totalRow]}>
             <Text style={styles.totalLabel}>Total Payable at Door</Text>
-            <Text style={styles.totalVal}>₹{(subtotal + 25).toFixed(2)}</Text>
+            <Text style={styles.totalVal}>₹{total.toFixed(2)}</Text>
           </View>
         </View>
       </View>
@@ -187,3 +198,4 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
 });
+

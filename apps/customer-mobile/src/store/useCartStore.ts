@@ -25,12 +25,18 @@ interface CartState {
   clearCart: () => void;
   getSubtotal: () => number;
   getItemCount: () => number;
+  getItemQuantity: (productId: string) => number;
 }
 
 export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
       items: [],
+
+      getItemQuantity: (productId: string) => {
+        const item = get().items.find((i) => i.product_id === productId);
+        return item ? item.quantity : 0;
+      },
 
       addItem: (product, quantity = 1) => {
         const { items } = get();
@@ -126,3 +132,4 @@ export const useCartStore = create<CartState>()(
     }
   )
 );
+

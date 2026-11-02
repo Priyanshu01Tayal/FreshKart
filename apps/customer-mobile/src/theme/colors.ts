@@ -43,3 +43,4 @@ export const colors = {
 };
 
 export type ColorTheme = typeof colors;
+

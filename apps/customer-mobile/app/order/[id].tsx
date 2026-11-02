@@ -16,7 +16,7 @@ export default function OrderTrackingScreen() {
           <Text style={styles.orderLabel}>Tracking Order</Text>
           <Text style={styles.orderNumber}>#{id || 'FK-20261102-XXXX'}</Text>
           <View style={styles.statusPill}>
-            <Text style={styles.statusText}>Estimated Arrival: 10-15 Mins</Text>
+            <Text style={styles.statusText}>Status: Live Tracking</Text>
           </View>
         </View>
 
@@ -28,7 +28,7 @@ export default function OrderTrackingScreen() {
               <CheckCircle2 color={colors.primary} size={20} />
               <View style={styles.stepDetails}>
                 <Text style={styles.stepTitle}>Order Placed</Text>
-                <Text style={styles.stepDesc}>Received by Koramangala store</Text>
+                <Text style={styles.stepDesc}>Received by store backend</Text>
               </View>
             </View>
 
@@ -165,3 +165,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+
