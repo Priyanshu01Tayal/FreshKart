@@ -21,7 +21,7 @@ export type CodStatus =
   | 'HELD_BY_PARTNER'
   | 'SETTLED_WITH_ADMIN';
 
-export interface Database {
+export type Database = {
   public: {
     Tables: {
       profiles: {
@@ -52,6 +52,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       store_settings: {
         Row: {
@@ -105,6 +106,7 @@ export interface Database {
           updated_at?: string;
           updated_by?: string | null;
         };
+        Relationships: [];
       };
       categories: {
         Row: {
@@ -137,6 +139,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       products: {
         Row: {
@@ -184,6 +187,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       addresses: {
         Row: {
@@ -231,6 +235,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       orders: {
         Row: {
@@ -311,6 +316,7 @@ export interface Database {
           cancelled_at?: string | null;
           updated_at?: string;
         };
+        Relationships: [];
       };
       order_items: {
         Row: {
@@ -343,6 +349,7 @@ export interface Database {
           quantity?: number;
           total_price?: number;
         };
+        Relationships: [];
       };
       order_status_logs: {
         Row: {
@@ -372,6 +379,7 @@ export interface Database {
           remarks?: string | null;
           created_at?: string;
         };
+        Relationships: [];
       };
       cash_settlements: {
         Row: {
@@ -410,31 +418,27 @@ export interface Database {
           discrepancy_notes?: string | null;
           settled_at?: string;
         };
+        Relationships: [];
       };
+    };
+    Views: {
+      [_ in never]: never;
     };
     Functions: {
       place_order: {
         Args: {
           p_address_id: string;
-          p_items: { product_id: string; quantity: number }[];
+          p_items: Json;
           p_customer_notes?: string | null;
         };
-        Returns: {
-          success: boolean;
-          order_id: string;
-          order_number: string;
-          subtotal: number;
-          delivery_fee: number;
-          total_amount: number;
-          placed_at: string;
-        };
+        Returns: Json;
       };
       admin_update_user_role: {
         Args: {
           p_target_user_id: string;
           p_new_role: UserRole;
         };
-        Returns: void;
+        Returns: undefined;
       };
       settle_delivery_partner_cash: {
         Args: {
@@ -442,17 +446,7 @@ export interface Database {
           p_actual_cash_received: number;
           p_notes?: string | null;
         };
-        Returns: {
-          success: boolean;
-          settlement_id: string;
-          settlement_reference: string;
-          delivery_partner_id: string;
-          total_orders_settled: number;
-          expected_cash_amount: number;
-          actual_cash_received: number;
-          discrepancy_amount: number;
-          settled_at: string;
-        };
+        Returns: Json;
       };
       is_admin: {
         Args: { user_id?: string };
@@ -463,5 +457,13 @@ export interface Database {
         Returns: boolean;
       };
     };
+    Enums: {
+      user_role: UserRole;
+      order_status: OrderStatus;
+      cod_status: CodStatus;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
+    };
   };
-}
+};

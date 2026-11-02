@@ -19,3 +19,4 @@ export const STORAGE_LIMITS = {
   PRODUCT_IMAGE_MAX_SIZE_BYTES: 2097152, // 2MB
   ALLOWED_IMAGE_MIME_TYPES: ['image/jpeg', 'image/png', 'image/webp'] as const,
 };
+

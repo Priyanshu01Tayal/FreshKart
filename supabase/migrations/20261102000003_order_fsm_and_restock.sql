@@ -191,3 +191,4 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 CREATE OR REPLACE TRIGGER trg_log_order_status_transition
     AFTER UPDATE OF status ON public.orders
     FOR EACH ROW EXECUTE FUNCTION public.log_order_status_transition();
+

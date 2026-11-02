@@ -296,3 +296,4 @@ CREATE POLICY "Admins can create and manage cash settlements"
     TO authenticated
     USING (public.is_admin(auth.uid()))
     WITH CHECK (public.is_admin(auth.uid()));
+

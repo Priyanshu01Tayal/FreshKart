@@ -39,3 +39,4 @@ file_size_limit = "2MiB"
 [realtime]
 enabled = true
 ip_version = "IPv4"
+

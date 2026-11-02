@@ -97,3 +97,4 @@ VALUES
     ('c1000000-0000-0000-0000-000000000006', 'Coca-Cola Original Carbonated Drink', 'Chilled, sparkling, refreshing cola taste.', '750 ml', 45.00, 40.00, 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=500', 50, 10, true),
     ('c1000000-0000-0000-0000-000000000006', 'Real Fruit Power Mixed Fruit Juice', 'Rich blend of delicious tropical fruits, high in natural goodness.', '1 L', 130.00, 109.00, 'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=500', 25, 5, true),
     ('c1000000-0000-0000-0000-000000000006', 'Kinley Packaged Drinking Water', 'Purified drinking water with added minerals.', '1 L', 20.00, 20.00, 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=500', 100, 20, true);
+

@@ -240,3 +240,4 @@ CREATE OR REPLACE TRIGGER trg_addresses_updated_at
 CREATE OR REPLACE TRIGGER trg_orders_updated_at
     BEFORE UPDATE ON public.orders
     FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
