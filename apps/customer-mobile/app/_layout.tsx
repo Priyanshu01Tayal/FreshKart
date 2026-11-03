@@ -1,10 +1,17 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { colors } from '../src/theme/colors';
+import { useAuthStore } from '../src/store/useAuthStore';
 
 export default function RootLayout() {
+  const initAuth = useAuthStore((state) => state.initAuth);
+
+  useEffect(() => {
+    initAuth();
+  }, [initAuth]);
+
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />
@@ -21,6 +28,16 @@ export default function RootLayout() {
           options={{
             headerShown: true,
             title: 'Checkout (COD)',
+            headerTintColor: colors.text,
+            headerStyle: { backgroundColor: colors.surface },
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
+          name="addresses/index"
+          options={{
+            headerShown: true,
+            title: 'Delivery Addresses',
             headerTintColor: colors.text,
             headerStyle: { backgroundColor: colors.surface },
             headerShadowVisible: false,

@@ -24,10 +24,12 @@ import { useRouter } from 'expo-router';
 import { colors } from '../../src/theme/colors';
 import { useCartStore, CartItem } from '../../src/store/useCartStore';
 import { useStoreSettings } from '../../src/hooks/useStoreSettings';
+import { useAuthStore } from '../../src/store/useAuthStore';
 
 export default function CartScreen() {
   const router = useRouter();
   const { settings, loading: settingsLoading } = useStoreSettings();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   const items = useCartStore((state) => state.items);
   const updateQuantity = useCartStore((state) => state.updateQuantity);
@@ -113,7 +115,15 @@ export default function CartScreen() {
       return;
     }
 
-    // Step 2 stops here; navigates to checkout screen
+    // Require authentication before proceeding to checkout
+    if (!isAuthenticated) {
+      router.push({
+        pathname: '/(auth)/login',
+        params: { returnTo: '/checkout' },
+      });
+      return;
+    }
+
     router.push('/checkout');
   };
 
