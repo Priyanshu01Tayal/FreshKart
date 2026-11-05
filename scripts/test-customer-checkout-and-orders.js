@@ -43,6 +43,8 @@ const rootDir = path.resolve(__dirname, '..');
 const requiredFiles = [
   'supabase/migrations/20261105000001_checkout_serviceability_and_idempotency.sql',
   'supabase/migrations/20261105000002_production_hardening_serviceability_and_gps.sql',
+  'supabase/migrations/20261105000003_realtime_publications_and_grants.sql',
+  'apps/customer-mobile/eas.json',
   'apps/customer-mobile/src/hooks/useServiceability.ts',
   'apps/customer-mobile/src/hooks/useOrders.ts',
   'apps/customer-mobile/src/hooks/useOrderTracking.ts',
@@ -84,6 +86,17 @@ assert(
   migration09.includes('Invalid geographic coordinates provided') &&
   migration09.includes('Consistency Violation: Delivered order cannot have PENDING_COLLECTION'),
   'Migration 09 enforces GPS geographic bounds and COD collection invariant triggers'
+);
+
+const migration10 = fs.readFileSync(
+  path.join(rootDir, 'supabase/migrations/20261105000003_realtime_publications_and_grants.sql'),
+  'utf8'
+);
+
+assert(
+  migration10.includes('ALTER PUBLICATION supabase_realtime ADD TABLE public.orders') &&
+  migration10.includes('GRANT EXECUTE ON FUNCTION public.place_order'),
+  'Migration 10 enables Realtime publications and explicit RPC execution grants'
 );
 
 // -----------------------------------------------------------------------------
