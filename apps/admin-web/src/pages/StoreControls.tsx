@@ -37,7 +37,7 @@ export const StoreControls: React.FC<StoreControlsProps> = ({
     standard_delivery_fee: '25.00',
     free_delivery_threshold: '299.00',
     contact_phone: '+919876543210',
-    serviceable_pincodes: '560034, 560095, 560068, 560078, 560102, 560103',
+    serviceable_pincodes: '',
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -322,7 +322,7 @@ export const StoreControls: React.FC<StoreControlsProps> = ({
               type="text"
               value={formData.serviceable_pincodes}
               onChange={(e) => setFormData({ ...formData, serviceable_pincodes: e.target.value })}
-              placeholder="560034, 560095, 560068, 560078, 560102, 560103"
+              placeholder="Enter comma-separated PIN codes (e.g. 110001, 110002)"
               className="w-full rounded-xl border border-gray-200 p-2.5 text-xs text-[#17251C] outline-none focus:border-[#168447]"
             />
             <p className="mt-1 text-[11px] text-gray-400">

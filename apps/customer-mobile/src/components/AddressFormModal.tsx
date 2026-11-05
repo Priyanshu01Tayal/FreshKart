@@ -40,8 +40,8 @@ export function AddressFormModal({
   const [addressLine1, setAddressLine1] = useState('');
   const [addressLine2, setAddressLine2] = useState('');
   const [landmark, setLandmark] = useState('');
-  const [city, setCity] = useState('Bengaluru');
-  const [state, setState] = useState('Karnataka');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
   const [pincode, setPincode] = useState('');
   const [isDefault, setIsDefault] = useState(false);
 
@@ -56,8 +56,8 @@ export function AddressFormModal({
       setAddressLine1(initialAddress.address_line1 || '');
       setAddressLine2(initialAddress.address_line2 || '');
       setLandmark(initialAddress.landmark || '');
-      setCity(initialAddress.city || 'Bengaluru');
-      setState(initialAddress.state || 'Karnataka');
+      setCity(initialAddress.city || '');
+      setState(initialAddress.state || '');
       setPincode(initialAddress.pincode || '');
       setIsDefault(Boolean(initialAddress.is_default));
     } else {
@@ -67,8 +67,8 @@ export function AddressFormModal({
       setAddressLine1('');
       setAddressLine2('');
       setLandmark('');
-      setCity('Bengaluru');
-      setState('Karnataka');
+      setCity('');
+      setState('');
       setPincode('');
       setIsDefault(false);
     }
@@ -95,6 +95,16 @@ export function AddressFormModal({
       setErrorMessage('Please enter house, flat, or building details.');
       return;
     }
+    const cleanCity = city.trim();
+    const cleanState = state.trim();
+    if (!cleanCity) {
+      setErrorMessage('Please enter city / town.');
+      return;
+    }
+    if (!cleanState) {
+      setErrorMessage('Please enter state.');
+      return;
+    }
     if (cleanPincode.length !== 6) {
       setErrorMessage('Please enter a valid 6-digit PIN code.');
       return;
@@ -108,8 +118,8 @@ export function AddressFormModal({
       address_line1: cleanLine1,
       address_line2: addressLine2.trim() || null,
       landmark: landmark.trim() || null,
-      city: city.trim() || 'Bengaluru',
-      state: state.trim() || 'Karnataka',
+      city: cleanCity,
+      state: cleanState,
       pincode: cleanPincode,
       is_default: isDefault,
     });

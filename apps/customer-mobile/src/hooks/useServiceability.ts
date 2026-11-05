@@ -54,31 +54,42 @@ export function useServiceability(
 
     // 1. PIN Code Allowlist Check
     const allowedPincodes = settings.serviceable_pincodes || [];
-    if (allowedPincodes.length > 0) {
-      const cleanPincode = address.pincode ? address.pincode.trim() : '';
-      if (!cleanPincode || !allowedPincodes.includes(cleanPincode)) {
-        return {
-          isServiceable: false,
-          reason: `Delivery is currently not available in PIN code ${cleanPincode || 'unknown'}. We currently deliver to: ${allowedPincodes.join(', ')}.`,
-          distanceKm: null,
-        };
-      }
-    } else if (address.latitude === null || address.longitude === null) {
+    if (allowedPincodes.length === 0) {
       return {
         isServiceable: false,
-        reason: `Delivery verification requires coordinates for PIN code ${address.pincode}.`,
+        reason: 'Store delivery zones are not yet configured by the administrator. Orders cannot be accepted at this time.',
         distanceKm: null,
       };
     }
 
-    // 2. Haversine Distance Check (if coordinates exist)
+    const cleanPincode = address.pincode ? address.pincode.trim() : '';
+    if (!cleanPincode || !allowedPincodes.includes(cleanPincode)) {
+      return {
+        isServiceable: false,
+        reason: `Delivery is currently not available in PIN code ${cleanPincode || 'unknown'}. We currently deliver to: ${allowedPincodes.join(', ')}.`,
+        distanceKm: null,
+      };
+    }
+
+    // 2. Haversine Distance Check & GPS Security (if coordinates exist)
     let distanceKm: number | null = null;
     if (address.latitude !== null && address.longitude !== null) {
+      const lat = Number(address.latitude);
+      const lon = Number(address.longitude);
+
+      if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+        return {
+          isServiceable: false,
+          reason: 'Invalid GPS coordinates detected on address.',
+          distanceKm: null,
+        };
+      }
+
       distanceKm = calculateHaversineKm(
         Number(settings.latitude),
         Number(settings.longitude),
-        Number(address.latitude),
-        Number(address.longitude)
+        lat,
+        lon
       );
 
       if (distanceKm > Number(settings.delivery_radius_km)) {

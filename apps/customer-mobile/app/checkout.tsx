@@ -31,6 +31,9 @@ import { useAuthStore } from '../src/store/useAuthStore';
 import { useAddresses } from '../src/hooks/useAddresses';
 import { useServiceability } from '../src/hooks/useServiceability';
 import { supabase } from '../src/services/supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const PENDING_IDEMPOTENCY_KEY = '@freshkart_pending_checkout_idempotency_key';
 
 export default function CheckoutScreen() {
   const router = useRouter();
@@ -52,10 +55,31 @@ export default function CheckoutScreen() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Client-generated session idempotency key to prevent double submissions
-  const idempotencyKeyRef = useRef<string>(
-    `idemp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
-  );
+  // Persisted idempotency key across retries, network timeouts, and app restarts
+  const [persistedKey, setPersistedKey] = useState<string>('');
+
+  useEffect(() => {
+    let active = true;
+    async function initKey() {
+      try {
+        const existing = await AsyncStorage.getItem(PENDING_IDEMPOTENCY_KEY);
+        if (existing && existing.trim()) {
+          if (active) setPersistedKey(existing.trim());
+        } else {
+          const freshKey = `idemp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+          await AsyncStorage.setItem(PENDING_IDEMPOTENCY_KEY, freshKey);
+          if (active) setPersistedKey(freshKey);
+        }
+      } catch {
+        const fallbackKey = `idemp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+        if (active) setPersistedKey(fallbackKey);
+      }
+    }
+    initKey();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const standardDeliveryFee = settings?.standard_delivery_fee ?? 25;
   const freeDeliveryThreshold = settings?.free_delivery_threshold ?? 299;
@@ -158,11 +182,18 @@ export default function CheckoutScreen() {
         quantity: item.quantity,
       }));
 
+      // Use the persisted idempotency key (or fallback if storage is initializing)
+      let activeKey = persistedKey;
+      if (!activeKey) {
+        activeKey = `idemp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+        await AsyncStorage.setItem(PENDING_IDEMPOTENCY_KEY, activeKey).catch(() => {});
+      }
+
       const { data, error } = await supabase.rpc('place_order', {
         p_address_id: selectedAddress.id,
         p_items: rpcItems as any,
         p_customer_notes: customerNotes.trim() ? customerNotes.trim() : null,
-        p_idempotency_key: idempotencyKeyRef.current,
+        p_idempotency_key: activeKey,
       });
 
       if (error) {
@@ -173,6 +204,9 @@ export default function CheckoutScreen() {
       if (!res || !res.order_id) {
         throw new Error('Order creation was not acknowledged by the server.');
       }
+
+      // Order definitively resolved on server: clear persisted idempotency key
+      await AsyncStorage.removeItem(PENDING_IDEMPOTENCY_KEY).catch(() => {});
 
       // CRITICAL UX REQUIREMENT: Clear cart ONLY after confirmed database success!
       clearCart();

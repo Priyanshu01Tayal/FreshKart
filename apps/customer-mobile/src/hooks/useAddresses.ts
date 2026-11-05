@@ -81,11 +81,15 @@ export function useAddresses() {
     const recipient = input.recipient_name.trim();
     const phone = input.phone.trim();
     const line1 = input.address_line1.trim();
+    const city = input.city?.trim() || '';
+    const state = input.state?.trim() || '';
     const pincode = input.pincode.trim();
 
     if (!recipient) return { success: false, message: 'Recipient name is required.' };
     if (!phone || phone.length < 10) return { success: false, message: 'Valid 10-digit phone is required.' };
     if (!line1) return { success: false, message: 'House/flat number is required.' };
+    if (!city) return { success: false, message: 'City is required.' };
+    if (!state) return { success: false, message: 'State is required.' };
     if (!pincode || pincode.length !== 6) return { success: false, message: 'Valid 6-digit PIN code is required.' };
 
     try {
@@ -110,8 +114,8 @@ export function useAddresses() {
         address_line1: line1,
         address_line2: input.address_line2?.trim() || null,
         landmark: input.landmark?.trim() || null,
-        city: input.city?.trim() || 'Bengaluru',
-        state: input.state?.trim() || 'Karnataka',
+        city,
+        state,
         pincode,
         latitude: input.latitude ?? null,
         longitude: input.longitude ?? null,
