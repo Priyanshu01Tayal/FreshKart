@@ -67,3 +67,4 @@ GRANT EXECUTE ON FUNCTION public.calculate_haversine_km(NUMERIC, NUMERIC, NUMERI
 GRANT EXECUTE ON FUNCTION public.is_admin(UUID) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.is_delivery_partner(UUID) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.get_current_role() TO anon, authenticated;
+
