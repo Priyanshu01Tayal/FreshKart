@@ -54,6 +54,13 @@ export default function RootLayout() {
           }}
         />
         <Stack.Screen
+          name="order/confirmation"
+          options={{
+            headerShown: false,
+            title: 'Order Confirmed',
+          }}
+        />
+        <Stack.Screen
           name="(auth)/login"
           options={{
             presentation: 'modal',

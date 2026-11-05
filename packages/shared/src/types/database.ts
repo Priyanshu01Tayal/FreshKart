@@ -69,6 +69,7 @@ export type Database = {
           standard_delivery_fee: number;
           free_delivery_threshold: number;
           contact_phone: string;
+          serviceable_pincodes: string[];
           updated_at: string;
           updated_by: string | null;
         };
@@ -86,6 +87,7 @@ export type Database = {
           standard_delivery_fee?: number;
           free_delivery_threshold?: number;
           contact_phone?: string;
+          serviceable_pincodes?: string[];
           updated_at?: string;
           updated_by?: string | null;
         };
@@ -103,6 +105,7 @@ export type Database = {
           standard_delivery_fee?: number;
           free_delivery_threshold?: number;
           contact_phone?: string;
+          serviceable_pincodes?: string[];
           updated_at?: string;
           updated_by?: string | null;
         };
@@ -263,6 +266,7 @@ export type Database = {
           cash_settlement_id: string | null;
           delivery_address: Json;
           customer_notes: string | null;
+          idempotency_key: string | null;
           cancellation_reason: string | null;
           cancelled_by: UserRole | null;
           placed_at: string;
@@ -289,6 +293,7 @@ export type Database = {
           cash_settlement_id?: string | null;
           delivery_address: Json;
           customer_notes?: string | null;
+          idempotency_key?: string | null;
           cancellation_reason?: string | null;
           cancelled_by?: UserRole | null;
           placed_at?: string;
@@ -315,6 +320,7 @@ export type Database = {
           cash_settlement_id?: string | null;
           delivery_address?: Json;
           customer_notes?: string | null;
+          idempotency_key?: string | null;
           cancellation_reason?: string | null;
           cancelled_by?: UserRole | null;
           placed_at?: string;
@@ -439,6 +445,14 @@ export type Database = {
           p_address_id: string;
           p_items: Json;
           p_customer_notes?: string | null;
+          p_idempotency_key?: string | null;
+        };
+        Returns: Json;
+      };
+      cancel_order: {
+        Args: {
+          p_order_id: string;
+          p_reason?: string | null;
         };
         Returns: Json;
       };

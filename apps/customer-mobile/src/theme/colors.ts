@@ -14,6 +14,7 @@ export const colors = {
   background: '#F5FAF5',
   surface: '#FFFFFF',
   surfaceSubtle: '#F9FCF9',
+  surfaceHighlight: '#EAF7EE',
 
   // Typography
   text: '#17251C',
@@ -40,6 +41,7 @@ export const colors = {
   accentYellow: '#FBBF24',
   accentOrange: '#F97316',
   badgeCod: '#105C35',
+  disabled: '#D1D5DB',
 };
 
 export type ColorTheme = typeof colors;

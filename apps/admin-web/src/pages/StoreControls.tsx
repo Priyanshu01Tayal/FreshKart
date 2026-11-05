@@ -37,6 +37,7 @@ export const StoreControls: React.FC<StoreControlsProps> = ({
     standard_delivery_fee: '25.00',
     free_delivery_threshold: '299.00',
     contact_phone: '+919876543210',
+    serviceable_pincodes: '560034, 560095, 560068, 560078, 560102, 560103',
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -57,6 +58,7 @@ export const StoreControls: React.FC<StoreControlsProps> = ({
         standard_delivery_fee: String(settings.standard_delivery_fee),
         free_delivery_threshold: String(settings.free_delivery_threshold),
         contact_phone: settings.contact_phone,
+        serviceable_pincodes: settings.serviceable_pincodes ? settings.serviceable_pincodes.join(', ') : '',
       });
     }
   }, [settings]);
@@ -70,6 +72,10 @@ export const StoreControls: React.FC<StoreControlsProps> = ({
     const minOrder = parseFloat(formData.min_order_value);
     const fee = parseFloat(formData.standard_delivery_fee);
     const freeThresh = parseFloat(formData.free_delivery_threshold);
+    const pincodeArray = formData.serviceable_pincodes
+      .split(',')
+      .map((p) => p.trim())
+      .filter((p) => p.length > 0);
 
     if (isNaN(radius) || radius <= 0) {
       setError('Delivery radius must be a positive number in kilometers.');
@@ -102,6 +108,7 @@ export const StoreControls: React.FC<StoreControlsProps> = ({
         standard_delivery_fee: fee,
         free_delivery_threshold: freeThresh,
         contact_phone: formData.contact_phone.trim(),
+        serviceable_pincodes: pincodeArray,
       });
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 4000);
@@ -305,6 +312,22 @@ export const StoreControls: React.FC<StoreControlsProps> = ({
               />
               <p className="mt-1 text-[11px] text-gray-400">For rider communications and support.</p>
             </div>
+          </div>
+
+          <div className="border-t border-gray-100 pt-4">
+            <label className="block text-xs font-semibold text-gray-700 mb-1">
+              Serviceable Delivery PIN Codes (Comma Separated)
+            </label>
+            <input
+              type="text"
+              value={formData.serviceable_pincodes}
+              onChange={(e) => setFormData({ ...formData, serviceable_pincodes: e.target.value })}
+              placeholder="560034, 560095, 560068, 560078, 560102, 560103"
+              className="w-full rounded-xl border border-gray-200 p-2.5 text-xs text-[#17251C] outline-none focus:border-[#168447]"
+            />
+            <p className="mt-1 text-[11px] text-gray-400">
+              Only customer delivery addresses within these configured postal codes will be serviceable.
+            </p>
           </div>
         </div>
 

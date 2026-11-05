@@ -1,29 +1,75 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  ActivityIndicator,
+  TextInput,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ShieldCheck, MapPin, ArrowRight, ChevronRight, AlertCircle, LogIn, Plus } from 'lucide-react-native';
+import {
+  ShieldCheck,
+  MapPin,
+  ArrowRight,
+  ChevronRight,
+  AlertCircle,
+  LogIn,
+  Plus,
+  ShoppingBag,
+  Store,
+  Bike,
+  Sparkles,
+} from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { colors } from '../src/theme/colors';
 import { useCartStore } from '../src/store/useCartStore';
 import { useStoreSettings } from '../src/hooks/useStoreSettings';
 import { useAuthStore } from '../src/store/useAuthStore';
 import { useAddresses } from '../src/hooks/useAddresses';
+import { useServiceability } from '../src/hooks/useServiceability';
+import { supabase } from '../src/services/supabase';
 
 export default function CheckoutScreen() {
   const router = useRouter();
 
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const items = useCartStore((state) => state.items);
   const subtotal = useCartStore((state) => state.getSubtotal());
   const itemCount = useCartStore((state) => state.getItemCount());
+  const clearCart = useCartStore((state) => state.clearCart);
 
-  const { settings } = useStoreSettings();
-  const { selectedAddress, addresses, loading: addressesLoading } = useAddresses();
+  const { settings, loading: settingsLoading } = useStoreSettings();
+  const { selectedAddress, loading: addressesLoading } = useAddresses();
+
+  // Serviceability check based on server allowlist and store radius
+  const serviceability = useServiceability(selectedAddress, settings);
+
+  // Form State
+  const [customerNotes, setCustomerNotes] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Client-generated session idempotency key to prevent double submissions
+  const idempotencyKeyRef = useRef<string>(
+    `idemp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+  );
 
   const standardDeliveryFee = settings?.standard_delivery_fee ?? 25;
   const freeDeliveryThreshold = settings?.free_delivery_threshold ?? 299;
+  const minOrderValue = settings?.min_order_value ?? 99;
+
   const deliveryFee = subtotal >= freeDeliveryThreshold ? 0 : standardDeliveryFee;
   const total = subtotal + deliveryFee;
+  const isBelowMinOrder = subtotal < minOrderValue;
+  const freeDeliveryGap = freeDeliveryThreshold - subtotal;
 
+  const isStoreOpen = settings?.is_store_open ?? true;
+  const isDeliveryAvailable = settings?.is_delivery_available ?? true;
+
+  // Protect route
   useEffect(() => {
     if (!isAuthenticated) {
       router.replace({
@@ -58,21 +104,124 @@ export default function CheckoutScreen() {
     );
   }
 
-  const handlePlaceOrder = () => {
+  // Can place order check
+  const canPlaceOrder =
+    selectedAddress !== null &&
+    serviceability.isServiceable &&
+    !isBelowMinOrder &&
+    isStoreOpen &&
+    isDeliveryAvailable &&
+    items.length > 0 &&
+    !isSubmitting;
+
+  const handlePlaceOrder = async () => {
     if (!selectedAddress) {
       Alert.alert('Address Required', 'Please select or add a delivery address to proceed.');
       return;
     }
-    // Step 3 stops here; Step 4 implements atomic order placement RPC
-    Alert.alert(
-      'Order Placement Ready',
-      `Address: ${selectedAddress.recipient_name}, ${selectedAddress.address_line1}\nPayment: Cash on Delivery (₹${total.toFixed(2)})\n\nOrder placement transaction will be finalized in Phase 3 Step 4.`
-    );
+
+    if (!serviceability.isServiceable) {
+      Alert.alert('Address Unserviceable', serviceability.reason || 'We cannot deliver to this address.');
+      return;
+    }
+
+    if (!isStoreOpen) {
+      Alert.alert('Store Closed', 'FreshKart store is currently closed. Please check back later.');
+      return;
+    }
+
+    if (!isDeliveryAvailable) {
+      Alert.alert('Delivery Paused', 'Delivery services are temporarily paused. Please try again shortly.');
+      return;
+    }
+
+    if (isBelowMinOrder) {
+      Alert.alert(
+        'Minimum Order Required',
+        `Minimum order amount is ₹${minOrderValue.toFixed(2)}. Current subtotal is ₹${subtotal.toFixed(2)}.`
+      );
+      return;
+    }
+
+    if (items.length === 0) {
+      Alert.alert('Empty Cart', 'Your cart is empty. Please add items before checking out.');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setErrorMessage(null);
+
+      // Prepare payload for atomic place_order RPC
+      const rpcItems = items.map((item) => ({
+        product_id: item.product_id,
+        quantity: item.quantity,
+      }));
+
+      const { data, error } = await supabase.rpc('place_order', {
+        p_address_id: selectedAddress.id,
+        p_items: rpcItems as any,
+        p_customer_notes: customerNotes.trim() ? customerNotes.trim() : null,
+        p_idempotency_key: idempotencyKeyRef.current,
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      const res = data as any;
+      if (!res || !res.order_id) {
+        throw new Error('Order creation was not acknowledged by the server.');
+      }
+
+      // CRITICAL UX REQUIREMENT: Clear cart ONLY after confirmed database success!
+      clearCart();
+
+      // Navigate to Order Confirmation Screen
+      router.replace({
+        pathname: '/order/confirmation',
+        params: { orderId: res.order_id },
+      });
+    } catch (err) {
+      // Cart remains 100% intact on failure!
+      const msg = err instanceof Error ? err.message : 'Failed to place order. Please try again.';
+      setErrorMessage(msg);
+      Alert.alert('Order Placement Failed', msg);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Store Closed / Paused Alerts */}
+        {!isStoreOpen && (
+          <View style={styles.alertBanner}>
+            <Store color={colors.danger} size={18} />
+            <Text style={styles.alertBannerText}>
+              Store is currently closed. Orders cannot be accepted right now.
+            </Text>
+          </View>
+        )}
+
+        {isStoreOpen && !isDeliveryAvailable && (
+          <View style={styles.alertBanner}>
+            <Bike color={colors.warning} size={18} />
+            <Text style={styles.alertBannerText}>
+              Delivery services are temporarily paused in your area.
+            </Text>
+          </View>
+        )}
+
+        {/* Error Banner */}
+        {errorMessage && (
+          <View style={styles.errorBanner}>
+            <AlertCircle color={colors.danger} size={18} />
+            <Text style={styles.errorBannerText}>{errorMessage}</Text>
+          </View>
+        )}
+
         {/* Delivery Address Section */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
@@ -106,6 +255,16 @@ export default function CheckoutScreen() {
               <Text style={styles.cityText}>
                 {selectedAddress.city}, {selectedAddress.state} - {selectedAddress.pincode}
               </Text>
+
+              {/* Server-Gated Serviceability Check Indicator */}
+              {!serviceability.isServiceable && (
+                <View style={styles.unserviceablePill}>
+                  <AlertCircle color={colors.danger} size={14} />
+                  <Text style={styles.unserviceableText}>
+                    {serviceability.reason}
+                  </Text>
+                </View>
+              )}
             </View>
           ) : (
             <TouchableOpacity
@@ -114,9 +273,45 @@ export default function CheckoutScreen() {
               activeOpacity={0.7}
             >
               <Plus color={colors.primary} size={20} />
-              <Text style={styles.noAddressText}>No address selected. Tap to add or choose one.</Text>
+              <Text style={styles.noAddressText}>No address selected. Tap to choose one.</Text>
             </TouchableOpacity>
           )}
+        </View>
+
+        {/* Cart Products Summary */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <ShoppingBag color={colors.primary} size={18} />
+            <Text style={styles.cardTitle}>Cart Items ({itemCount})</Text>
+          </View>
+          {items.map((item) => (
+            <View key={item.product_id} style={styles.itemSummaryRow}>
+              <View style={styles.itemInfo}>
+                <Text style={styles.itemName} numberOfLines={1}>
+                  {item.name}
+                </Text>
+                <Text style={styles.itemMeta}>
+                  {item.quantity} × ₹{item.effective_price.toFixed(2)} / {item.unit}
+                </Text>
+              </View>
+              <Text style={styles.itemTotal}>
+                ₹{(item.effective_price * item.quantity).toFixed(2)}
+              </Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Customer Delivery Notes */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Delivery Notes (Optional)</Text>
+          <TextInput
+            style={styles.notesInput}
+            placeholder="e.g. Please ring doorbell / Leave at security gate"
+            placeholderTextColor={colors.textMuted}
+            value={customerNotes}
+            onChangeText={setCustomerNotes}
+            maxLength={200}
+          />
         </View>
 
         {/* Payment Method Section (Strictly COD) */}
@@ -127,26 +322,56 @@ export default function CheckoutScreen() {
           </View>
           <View style={styles.codRow}>
             <Text style={styles.codLabel}>Cash on Delivery (COD)</Text>
-            <Text style={styles.codBadge}>V1 Supported</Text>
+            <View style={styles.codBadge}>
+              <Text style={styles.codBadgeText}>Selected</Text>
+            </View>
           </View>
           <Text style={styles.codNote}>
-            Pay in cash to your delivery partner upon package handover. No online payment needed.
+            Pay in cash to your delivery partner upon package handover. No online payment required in V1.
           </Text>
         </View>
 
-        {/* Order Summary */}
+        {/* Free Delivery / Threshold Progress */}
+        {freeDeliveryGap > 0 ? (
+          <View style={styles.freeDeliveryBanner}>
+            <Sparkles color={colors.primary} size={16} />
+            <Text style={styles.freeDeliveryText}>
+              Add ₹{freeDeliveryGap.toFixed(2)} more to unlock <Text style={styles.boldText}>FREE delivery</Text>!
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.freeDeliveryUnlocked}>
+            <Sparkles color={colors.primary} size={16} />
+            <Text style={styles.freeDeliveryUnlockedText}>
+              🎉 You have unlocked <Text style={styles.boldText}>FREE delivery</Text>!
+            </Text>
+          </View>
+        )}
+
+        {/* Bill Summary */}
         <View style={styles.billCard}>
-          <Text style={styles.billTitle}>Order Summary ({itemCount} items)</Text>
+          <Text style={styles.billTitle}>Bill Breakdown</Text>
           <View style={styles.billRow}>
             <Text style={styles.billLabel}>Items Subtotal</Text>
             <Text style={styles.billVal}>₹{subtotal.toFixed(2)}</Text>
           </View>
           <View style={styles.billRow}>
             <Text style={styles.billLabel}>Standard Delivery Fee</Text>
-            <Text style={styles.billVal}>
+            <Text style={[styles.billVal, deliveryFee === 0 && styles.freeFeeText]}>
               {deliveryFee === 0 ? 'FREE' : `₹${deliveryFee.toFixed(2)}`}
             </Text>
           </View>
+
+          {isBelowMinOrder && (
+            <View style={styles.minOrderNotice}>
+              <AlertCircle color={colors.danger} size={14} />
+              <Text style={styles.minOrderText}>
+                Minimum order value is ₹{minOrderValue.toFixed(2)}. Add ₹
+                {(minOrderValue - subtotal).toFixed(2)} more to proceed.
+              </Text>
+            </View>
+          )}
+
           <View style={[styles.billRow, styles.totalRow]}>
             <Text style={styles.totalLabel}>Total Payable at Door</Text>
             <Text style={styles.totalVal}>₹{total.toFixed(2)}</Text>
@@ -157,18 +382,24 @@ export default function CheckoutScreen() {
       {/* Place Order CTA */}
       <View style={styles.footer}>
         <View style={styles.footerPriceCol}>
-          <Text style={styles.footerPriceLabel}>TOTAL PAYABLE</Text>
+          <Text style={styles.footerPriceLabel}>TOTAL AMOUNT (COD)</Text>
           <Text style={styles.footerPriceValue}>₹{total.toFixed(2)}</Text>
         </View>
 
         <TouchableOpacity
-          style={[styles.placeOrderBtn, !selectedAddress && styles.placeOrderDisabled]}
+          style={[styles.placeOrderBtn, !canPlaceOrder && styles.placeOrderDisabled]}
           onPress={handlePlaceOrder}
-          disabled={!selectedAddress}
+          disabled={!canPlaceOrder}
           activeOpacity={0.8}
         >
-          <Text style={styles.placeOrderText}>Place COD Order</Text>
-          <ArrowRight color={colors.textInverse} size={18} />
+          {isSubmitting ? (
+            <ActivityIndicator size="small" color={colors.textInverse} />
+          ) : (
+            <>
+              <Text style={styles.placeOrderText}>Place COD Order</Text>
+              <ArrowRight color={colors.textInverse} size={18} />
+            </>
+          )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -215,6 +446,34 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
   },
+  alertBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FDE8E8',
+    padding: 12,
+    borderRadius: 12,
+  },
+  alertBannerText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.danger,
+    flex: 1,
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FEE2E2',
+    padding: 12,
+    borderRadius: 12,
+  },
+  errorBannerText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.danger,
+    flex: 1,
+  },
   card: {
     backgroundColor: colors.surface,
     padding: 16,
@@ -248,22 +507,24 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     padding: 12,
     borderRadius: 12,
-    gap: 4,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   addressLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 2,
+    marginBottom: 4,
   },
   addressTypeBadge: {
-    backgroundColor: colors.primaryLight,
-    color: colors.primaryDark,
     fontSize: 10,
     fontWeight: '800',
+    color: colors.primary,
+    backgroundColor: colors.surfaceHighlight,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
+    textTransform: 'uppercase',
   },
   recipientName: {
     fontSize: 13,
@@ -272,63 +533,151 @@ const styles = StyleSheet.create({
   },
   recipientPhone: {
     fontSize: 12,
-    color: colors.textSecondary,
+    color: colors.textMuted,
   },
   addressLine: {
-    fontSize: 13,
-    color: colors.text,
-    lineHeight: 18,
-  },
-  landmarkText: {
     fontSize: 12,
     color: colors.textSecondary,
-    fontStyle: 'italic',
+    lineHeight: 16,
+    marginTop: 2,
+  },
+  landmarkText: {
+    fontSize: 11,
+    color: colors.textMuted,
+    marginTop: 2,
   },
   cityText: {
     fontSize: 12,
     fontWeight: '600',
-    color: colors.textSecondary,
+    color: colors.text,
+    marginTop: 2,
+  },
+  unserviceablePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FDE8E8',
+    padding: 8,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  unserviceableText: {
+    fontSize: 11,
+    color: colors.danger,
+    fontWeight: '700',
+    flex: 1,
   },
   noAddressBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: colors.background,
-    padding: 14,
-    borderRadius: 12,
+    justifyContent: 'center',
+    padding: 16,
     borderWidth: 1,
-    borderColor: colors.border,
     borderStyle: 'dashed',
+    borderColor: colors.primary,
+    borderRadius: 12,
+    backgroundColor: colors.surfaceHighlight,
+    gap: 8,
   },
   noAddressText: {
     fontSize: 13,
-    color: colors.primaryDark,
     fontWeight: '600',
+    color: colors.primary,
+  },
+  itemSummaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+  },
+  itemInfo: {
+    flex: 1,
+    paddingRight: 8,
+  },
+  itemName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  itemMeta: {
+    fontSize: 11,
+    color: colors.textMuted,
+    marginTop: 1,
+  },
+  itemTotal: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  notesInput: {
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    padding: 10,
+    fontSize: 13,
+    color: colors.text,
+    marginTop: 6,
   },
   codRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: 4,
   },
   codLabel: {
     fontSize: 14,
     fontWeight: '700',
-    color: colors.primaryDark,
+    color: colors.text,
   },
   codBadge: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.primary,
-    backgroundColor: colors.primaryLight,
+    backgroundColor: colors.surfaceHighlight,
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: 3,
     borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  codBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.primary,
   },
   codNote: {
     fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 6,
+    color: colors.textMuted,
     lineHeight: 16,
+  },
+  freeDeliveryBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.surfaceHighlight,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.primaryLight,
+  },
+  freeDeliveryText: {
+    fontSize: 12,
+    color: colors.primaryDark,
+    flex: 1,
+  },
+  freeDeliveryUnlocked: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.surfaceHighlight,
+    padding: 12,
+    borderRadius: 12,
+  },
+  freeDeliveryUnlockedText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.primaryDark,
+  },
+  boldText: {
+    fontWeight: '800',
   },
   billCard: {
     backgroundColor: colors.surface,
@@ -336,17 +685,18 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.border,
-    gap: 8,
   },
   billTitle: {
     fontSize: 14,
     fontWeight: '800',
     color: colors.text,
-    marginBottom: 4,
+    marginBottom: 8,
   },
   billRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
+    paddingVertical: 4,
   },
   billLabel: {
     fontSize: 13,
@@ -357,11 +707,30 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.text,
   },
+  freeFeeText: {
+    color: colors.primary,
+    fontWeight: '800',
+  },
+  minOrderNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FDE8E8',
+    padding: 8,
+    borderRadius: 8,
+    marginVertical: 6,
+  },
+  minOrderText: {
+    fontSize: 11,
+    color: colors.danger,
+    fontWeight: '700',
+    flex: 1,
+  },
   totalRow: {
+    marginTop: 6,
+    paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    paddingTop: 8,
-    marginTop: 4,
   },
   totalLabel: {
     fontSize: 15,
@@ -369,48 +738,50 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   totalVal: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '800',
     color: colors.primary,
   },
   footer: {
-    padding: 16,
     backgroundColor: colors.surface,
+    padding: 16,
     borderTopWidth: 1,
     borderTopColor: colors.border,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 12,
   },
   footerPriceCol: {
-    justifyContent: 'center',
+    flex: 1,
   },
   footerPriceLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: colors.textSecondary,
+    color: colors.textMuted,
+    letterSpacing: 0.5,
   },
   footerPriceValue: {
     fontSize: 18,
     fontWeight: '800',
-    color: colors.primaryDark,
+    color: colors.text,
   },
   placeOrderBtn: {
-    flex: 1,
     backgroundColor: colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 20,
     paddingVertical: 14,
     borderRadius: 14,
     gap: 8,
+    minWidth: 160,
   },
   placeOrderDisabled: {
-    opacity: 0.6,
+    backgroundColor: colors.disabled,
   },
   placeOrderText: {
     color: colors.textInverse,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '800',
   },
 });
